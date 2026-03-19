@@ -1,17 +1,59 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { mockLeads, mockMessages, getStatusClass, generateAIMessage } from '@/lib/mock-data';
+import { getStatusClass, generateAIMessage, type Lead, type LeadStatus, type Message } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, MessageSquare, Send, Edit2, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const LeadDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const lead = mockLeads.find(l => l.id === id);
-  const messages = mockMessages.filter(m => m.lead_id === id);
+  const { user } = useAuth();
+  const [lead, setLead] = useState<Lead | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [manualMsg, setManualMsg] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user || !id) return;
+    const fetch = async () => {
+      const [leadRes, msgRes] = await Promise.all([
+        supabase.from('leads').select('*').eq('id', id).single(),
+        supabase.from('messages').select('*').eq('lead_id', id).order('created_at', { ascending: true }),
+      ]);
+      if (leadRes.data) setLead(leadRes.data as unknown as Lead);
+      if (msgRes.data) setMessages(msgRes.data as unknown as Message[]);
+      setLoading(false);
+    };
+    fetch();
+  }, [user, id]);
+
+  const handleQueueMessage = async () => {
+    if (!user || !lead || !manualMsg.trim()) return;
+    const { error } = await supabase.from('messages').insert({
+      lead_id: lead.id,
+      user_id: user.id,
+      lead_name: lead.name,
+      content: manualMsg,
+      tone: 'warm',
+      channel: lead.channel,
+      scheduled_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+    });
+    if (error) { toast.error('Failed to queue message'); return; }
+    toast.success('Message queued!');
+    setManualMsg('');
+    // Refresh messages
+    const { data } = await supabase.from('messages').select('*').eq('lead_id', lead.id).order('created_at', { ascending: true });
+    if (data) setMessages(data as unknown as Message[]);
+  };
+
+  if (loading) {
+    return <div className="p-6 max-w-4xl mx-auto space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-48 w-full" /></div>;
+  }
 
   if (!lead) {
     return (
@@ -40,22 +82,21 @@ const LeadDetail = () => {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-xl font-bold text-foreground">{lead.name}</h1>
-              <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wide ${getStatusClass(lead.status)}`}>
+              <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wide ${getStatusClass(lead.status as LeadStatus)}`}>
                 {lead.status}
               </span>
             </div>
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {lead.email}</span>
-              <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {lead.phone}</span>
-              <span>{lead.business_type}</span>
-              {lead.deal_value && <span className="font-medium text-foreground">${lead.deal_value.toLocaleString()}</span>}
+              {lead.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {lead.email}</span>}
+              {lead.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {lead.phone}</span>}
+              {lead.business_type && <span>{lead.business_type}</span>}
+              {lead.deal_value && <span className="font-medium text-foreground">${Number(lead.deal_value).toLocaleString()}</span>}
             </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm"><Edit2 className="w-3.5 h-3.5 mr-1" /> Edit</Button>
           </div>
         </div>
-        {/* Score */}
         <div className="mt-4 flex items-center gap-4">
           <div>
             <span className="text-xs text-muted-foreground">Lead Score</span>
@@ -82,21 +123,25 @@ const LeadDetail = () => {
       {/* Timeline */}
       <div className="card-elevated p-6 mb-6">
         <h2 className="text-sm font-semibold text-foreground mb-4">Interaction Timeline</h2>
-        <div className="space-y-4">
-          {timeline.map((item, i) => (
-            <div key={i} className="flex gap-3">
-              <div className="text-lg">{item.icon}</div>
-              <div className="flex-1">
-                <p className="text-sm text-foreground">{item.content}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {new Date(item.time).toLocaleString()}
-                  {'tone' in item && <span className="ml-2 text-primary">· {item.tone} tone</span>}
-                  {'status' in item && typeof item.status === 'string' && item.type === 'message' && <span className="ml-2">· {item.status}</span>}
-                </p>
+        {timeline.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No interactions yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {timeline.map((item, i) => (
+              <div key={i} className="flex gap-3">
+                <div className="text-lg">{item.icon}</div>
+                <div className="flex-1">
+                  <p className="text-sm text-foreground">{item.content}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {new Date(item.time).toLocaleString()}
+                    {'tone' in item && <span className="ml-2 text-primary">· {item.tone} tone</span>}
+                    {'status' in item && typeof item.status === 'string' && item.type === 'message' && <span className="ml-2">· {item.status}</span>}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Manual Message */}
@@ -104,10 +149,10 @@ const LeadDetail = () => {
         <h2 className="text-sm font-semibold text-foreground mb-4">Send Manual Message</h2>
         <Textarea value={manualMsg} onChange={e => setManualMsg(e.target.value)} placeholder="Type your message..." rows={3} className="mb-3" />
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => { toast.success('Message queued!'); setManualMsg(''); }}>
+          <Button size="sm" onClick={handleQueueMessage} disabled={!manualMsg.trim()}>
             <Send className="w-3.5 h-3.5 mr-1" /> Queue Message
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setManualMsg(generateAIMessage(lead.name, lead.business_type, 'warm'))}>
+          <Button variant="outline" size="sm" onClick={() => setManualMsg(generateAIMessage(lead.name, lead.business_type || 'your', 'warm'))}>
             Generate AI Message
           </Button>
         </div>

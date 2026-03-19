@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,14 +6,48 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Settings = () => {
+  const { user, profile } = useAuth();
   const [f1, setF1] = useState(24);
   const [f2, setF2] = useState(48);
   const [f3, setF3] = useState(5);
   const [channel, setChannel] = useState('both');
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [dailySummary, setDailySummary] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('settings').select('*').eq('user_id', user.id).single().then(({ data }) => {
+      if (data) {
+        setF1((data as any).followup1_hours);
+        setF2((data as any).followup2_hours);
+        setF3((data as any).followup3_days);
+        setChannel((data as any).preferred_channel);
+        setEmailAlerts((data as any).email_alerts);
+        setDailySummary((data as any).daily_summary);
+      }
+    });
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase.from('settings').update({
+      followup1_hours: f1,
+      followup2_hours: f2,
+      followup3_days: f3,
+      preferred_channel: channel,
+      email_alerts: emailAlerts,
+      daily_summary: dailySummary,
+    }).eq('user_id', user.id);
+    setSaving(false);
+    if (error) toast.error('Failed to save settings');
+    else toast.success('Settings saved!');
+  };
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -85,18 +119,11 @@ const Settings = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label className="text-xs">Business Name</Label>
-            <Input defaultValue="Demo Business" />
+            <Input defaultValue={profile?.business_name || ''} disabled />
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Business Type</Label>
-            <Select defaultValue="Coaching">
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {['Salon', 'Coaching', 'Retail', 'Agency', 'Freelancer', 'Other'].map(t => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input defaultValue={profile?.business_type || ''} disabled />
           </div>
         </div>
       </div>
@@ -122,8 +149,8 @@ const Settings = () => {
         </div>
       </div>
 
-      <Button onClick={() => toast.success('Settings saved!')} className="w-full sm:w-auto">
-        Save Preferences
+      <Button onClick={handleSave} className="w-full sm:w-auto" disabled={saving}>
+        {saving ? 'Saving...' : 'Save Preferences'}
       </Button>
     </div>
   );

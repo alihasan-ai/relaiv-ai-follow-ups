@@ -20,8 +20,8 @@ const Login = () => {
       await login(email, password);
       toast.success('Welcome back!');
       navigate('/dashboard');
-    } catch {
-      toast.error('Invalid credentials');
+    } catch (err: any) {
+      toast.error(err?.message || 'Invalid credentials');
     } finally {
       setLoading(false);
     }

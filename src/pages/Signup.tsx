@@ -19,10 +19,10 @@ const Signup = () => {
     setLoading(true);
     try {
       await signup(form);
-      toast.success('Account created!');
-      navigate('/onboarding');
-    } catch {
-      toast.error('Signup failed');
+      toast.success('Account created! Please check your email to confirm your account.');
+      navigate('/login');
+    } catch (err: any) {
+      toast.error(err?.message || 'Signup failed');
     } finally {
       setLoading(false);
     }
