@@ -14,7 +14,185 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      leads: {
+        Row: {
+          business_type: string | null
+          channel: Database["public"]["Enums"]["channel_type"]
+          created_at: string
+          deal_value: number | null
+          email: string | null
+          id: string
+          last_contacted: string
+          name: string
+          notes: string | null
+          phone: string | null
+          score: number
+          status: Database["public"]["Enums"]["lead_status"]
+          user_id: string
+        }
+        Insert: {
+          business_type?: string | null
+          channel?: Database["public"]["Enums"]["channel_type"]
+          created_at?: string
+          deal_value?: number | null
+          email?: string | null
+          id?: string
+          last_contacted?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          score?: number
+          status?: Database["public"]["Enums"]["lead_status"]
+          user_id: string
+        }
+        Update: {
+          business_type?: string | null
+          channel?: Database["public"]["Enums"]["channel_type"]
+          created_at?: string
+          deal_value?: number | null
+          email?: string | null
+          id?: string
+          last_contacted?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          score?: number
+          status?: Database["public"]["Enums"]["lead_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          channel: Database["public"]["Enums"]["channel_type"]
+          content: string
+          created_at: string
+          id: string
+          lead_id: string
+          lead_name: string
+          scheduled_at: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["message_status"]
+          tone: Database["public"]["Enums"]["message_tone"]
+          user_id: string
+        }
+        Insert: {
+          channel?: Database["public"]["Enums"]["channel_type"]
+          content: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          lead_name?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+          tone?: Database["public"]["Enums"]["message_tone"]
+          user_id: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["channel_type"]
+          content?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          lead_name?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+          tone?: Database["public"]["Enums"]["message_tone"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          business_name: string
+          business_type: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          plan: Database["public"]["Enums"]["plan_tier"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          business_name?: string
+          business_type?: string
+          created_at?: string
+          email: string
+          full_name?: string
+          id: string
+          plan?: Database["public"]["Enums"]["plan_tier"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          business_name?: string
+          business_type?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          plan?: Database["public"]["Enums"]["plan_tier"]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          created_at: string
+          daily_summary: boolean
+          email_alerts: boolean
+          followup1_hours: number
+          followup2_hours: number
+          followup3_days: number
+          id: string
+          preferred_channel: Database["public"]["Enums"]["channel_type"]
+          tone_progression: Database["public"]["Enums"]["message_tone"][]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_summary?: boolean
+          email_alerts?: boolean
+          followup1_hours?: number
+          followup2_hours?: number
+          followup3_days?: number
+          id?: string
+          preferred_channel?: Database["public"]["Enums"]["channel_type"]
+          tone_progression?: Database["public"]["Enums"]["message_tone"][]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_summary?: boolean
+          email_alerts?: boolean
+          followup1_hours?: number
+          followup2_hours?: number
+          followup3_days?: number
+          id?: string
+          preferred_channel?: Database["public"]["Enums"]["channel_type"]
+          tone_progression?: Database["public"]["Enums"]["message_tone"][]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +201,11 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      channel_type: "whatsapp" | "email" | "both"
+      lead_status: "watching" | "ghosting" | "critical" | "replied" | "archived"
+      message_status: "pending" | "scheduled" | "sent" | "skipped"
+      message_tone: "warm" | "firm" | "final"
+      plan_tier: "starter" | "growth" | "agency"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +332,12 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      channel_type: ["whatsapp", "email", "both"],
+      lead_status: ["watching", "ghosting", "critical", "replied", "archived"],
+      message_status: ["pending", "scheduled", "sent", "skipped"],
+      message_tone: ["warm", "firm", "final"],
+      plan_tier: ["starter", "growth", "agency"],
+    },
   },
 } as const
