@@ -15,7 +15,7 @@ const navItems = [
 ];
 
 const DashboardLayout = () => {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -58,8 +58,8 @@ const DashboardLayout = () => {
               <UserCircle className="w-4 h-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">{user?.full_name || 'User'}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{user?.business_name || ''}</p>
+              <p className="text-xs font-medium text-foreground truncate">{profile?.full_name || 'User'}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{profile?.business_name || ''}</p>
             </div>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
               <LogOut className="w-3.5 h-3.5" />
