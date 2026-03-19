@@ -1,4 +1,4 @@
-// Mock data for the application
+// Types and utility functions for the application
 
 export type LeadStatus = 'watching' | 'ghosting' | 'critical' | 'replied' | 'archived';
 export type MessageTone = 'warm' | 'firm' | 'final';
@@ -9,9 +9,9 @@ export interface Lead {
   id: string;
   user_id: string;
   name: string;
-  email: string;
-  phone: string;
-  business_type: string;
+  email: string | null;
+  phone: string | null;
+  business_type: string | null;
   deal_value: number | null;
   notes: string;
   last_contacted: string;
@@ -52,31 +52,11 @@ export interface UserProfile {
   business_type: string;
   plan: PlanTier;
   created_at: string;
-  status: 'active' | 'trial' | 'churned';
+  status: string;
   avatar_url?: string;
 }
 
-// Mock leads
-export const mockLeads: Lead[] = [
-  { id: '1', user_id: '1', name: 'Sarah Chen', email: 'sarah@example.com', phone: '+1234567890', business_type: 'Salon', deal_value: 2500, notes: 'Interested in full package', last_contacted: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(), status: 'ghosting', channel: 'email', created_at: '2024-01-15', score: 45 },
-  { id: '2', user_id: '1', name: 'Marcus Johnson', email: 'marcus@example.com', phone: '+1234567891', business_type: 'Coaching', deal_value: 5000, notes: 'Follow up on proposal', last_contacted: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), status: 'watching', channel: 'whatsapp', created_at: '2024-01-20', score: 78 },
-  { id: '3', user_id: '1', name: 'Emily Rodriguez', email: 'emily@example.com', phone: '+1234567892', business_type: 'Retail', deal_value: 1200, notes: 'Wants to see demo first', last_contacted: new Date(Date.now() - 168 * 60 * 60 * 1000).toISOString(), status: 'critical', channel: 'both', created_at: '2024-01-10', score: 15 },
-  { id: '4', user_id: '1', name: 'David Kim', email: 'david@example.com', phone: '+1234567893', business_type: 'Agency', deal_value: 8000, notes: 'Replied with questions', last_contacted: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), status: 'replied', channel: 'email', created_at: '2024-01-25', score: 92 },
-  { id: '5', user_id: '1', name: 'Lisa Patel', email: 'lisa@example.com', phone: '+1234567894', business_type: 'Freelancer', deal_value: 3500, notes: 'Checking with partner', last_contacted: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), status: 'ghosting', channel: 'whatsapp', created_at: '2024-02-01', score: 38 },
-  { id: '6', user_id: '1', name: 'James Wright', email: 'james@example.com', phone: '+1234567895', business_type: 'Coaching', deal_value: null, notes: '', last_contacted: new Date(Date.now() - 336 * 60 * 60 * 1000).toISOString(), status: 'archived', channel: 'email', created_at: '2023-12-15', score: 5 },
-  { id: '7', user_id: '1', name: 'Anna Kowalski', email: 'anna@example.com', phone: '+1234567896', business_type: 'Salon', deal_value: 1800, notes: 'Interested in monthly plan', last_contacted: new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString(), status: 'critical', channel: 'both', created_at: '2024-02-05', score: 22 },
-  { id: '8', user_id: '1', name: 'Tom Nakamura', email: 'tom@example.com', phone: '+1234567897', business_type: 'Retail', deal_value: 4200, notes: 'Wants custom pricing', last_contacted: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), status: 'watching', channel: 'email', created_at: '2024-02-10', score: 65 },
-];
-
-// Mock messages
-export const mockMessages: Message[] = [
-  { id: '1', lead_id: '1', lead_name: 'Sarah Chen', user_id: '1', content: "Hi Sarah, just checking in to see if you had any more questions about our Salon services! We'd love to help you get started.", tone: 'warm', channel: 'email', status: 'pending', scheduled_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), sent_at: null },
-  { id: '2', lead_id: '5', lead_name: 'Lisa Patel', user_id: '1', content: "Hi Lisa, I haven't heard back regarding the Freelancer proposal. Should I keep this slot open for you? Happy to answer any questions.", tone: 'firm', channel: 'whatsapp', status: 'pending', scheduled_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), sent_at: null },
-  { id: '3', lead_id: '3', lead_name: 'Emily Rodriguez', user_id: '1', content: "Hi Emily, I'm going to go ahead and close your inquiry for Retail services for now. Feel free to reach out anytime if things change — we'd love to work with you!", tone: 'final', channel: 'email', status: 'pending', scheduled_at: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(), sent_at: null },
-  { id: '4', lead_id: '7', lead_name: 'Anna Kowalski', user_id: '1', content: "Hi Anna, just wanted to follow up on the monthly Salon plan we discussed. Is there anything else you need to make a decision?", tone: 'warm', channel: 'both', status: 'scheduled', scheduled_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), sent_at: null },
-];
-
-// Mock admin data
+// Mock admin data (admin panel still uses mock data)
 export const mockCustomers: UserProfile[] = [
   { id: '1', email: 'john@business.com', full_name: 'John Smith', business_name: 'Smith Coaching', business_type: 'Coaching', plan: 'growth', created_at: '2024-01-15', status: 'active' },
   { id: '2', email: 'maria@salon.com', full_name: 'Maria Garcia', business_name: 'Bella Salon', business_type: 'Salon', plan: 'starter', created_at: '2024-01-20', status: 'active' },

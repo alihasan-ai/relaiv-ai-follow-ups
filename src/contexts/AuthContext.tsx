@@ -1,16 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
-interface AuthUser {
+interface Profile {
   id: string;
   email: string;
   full_name: string;
   business_name: string;
   business_type: string;
   plan: string;
+  status: string;
+  avatar_url: string | null;
 }
 
 interface AuthContextType {
-  user: AuthUser | null;
+  user: User | null;
+  profile: Profile | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
@@ -18,6 +23,7 @@ interface AuthContextType {
   isAdmin: boolean;
   adminLogin: (email: string, password: string) => Promise<void>;
   adminLogout: () => void;
+  refreshProfile: () => Promise<void>;
 }
 
 interface SignupData {
@@ -37,49 +43,78 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (data) setProfile(data as Profile);
+  };
+
+  const refreshProfile = async () => {
+    if (user) await fetchProfile(user.id);
+  };
+
   useEffect(() => {
-    // Check for stored session
-    const stored = localStorage.getItem('relaiv_user');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          setUser(session.user);
+          // Defer profile fetch to avoid blocking
+          setTimeout(() => fetchProfile(session.user.id), 0);
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        fetchProfile(session.user.id);
+      }
+      setIsLoading(false);
+    });
+
+    // Check admin from localStorage (admin is separate)
     const adminStored = localStorage.getItem('relaiv_admin');
-    if (stored) setUser(JSON.parse(stored));
     if (adminStored) setIsAdmin(true);
-    setIsLoading(false);
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, _password: string) => {
-    // Mock login
-    const mockUser: AuthUser = {
-      id: '1',
-      email,
-      full_name: 'Demo User',
-      business_name: 'Demo Business',
-      business_type: 'Coaching',
-      plan: 'growth',
-    };
-    setUser(mockUser);
-    localStorage.setItem('relaiv_user', JSON.stringify(mockUser));
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   };
 
   const signup = async (data: SignupData) => {
-    const mockUser: AuthUser = {
-      id: '1',
+    const { error } = await supabase.auth.signUp({
       email: data.email,
-      full_name: data.full_name,
-      business_name: data.business_name,
-      business_type: data.business_type,
-      plan: 'starter',
-    };
-    setUser(mockUser);
-    localStorage.setItem('relaiv_user', JSON.stringify(mockUser));
+      password: data.password,
+      options: {
+        data: {
+          full_name: data.full_name,
+          business_name: data.business_name,
+          business_type: data.business_type,
+        },
+      },
+    });
+    if (error) throw error;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('relaiv_user');
+    setProfile(null);
   };
 
   const adminLogin = async (email: string, _password: string) => {
@@ -97,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout, isAdmin, adminLogin, adminLogout }}>
+    <AuthContext.Provider value={{ user, profile, isLoading, login, signup, logout, isAdmin, adminLogin, adminLogout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
