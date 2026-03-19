@@ -40,7 +40,7 @@ const Settings = () => {
       followup1_hours: f1,
       followup2_hours: f2,
       followup3_days: f3,
-      preferred_channel: channel,
+      preferred_channel: channel as any,
       email_alerts: emailAlerts,
       daily_summary: dailySummary,
     }).eq('user_id', user.id);
